@@ -4,6 +4,7 @@ from inference_worker.core.exceptions import InferenceError
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from ultralytics.solutions import ObjectCounter
+from collections import defaultdict
 import logging, mimetypes, pathlib, subprocess, cv2
 
 logger = logging.getLogger(__name__)
@@ -38,18 +39,23 @@ class Model(abstraction.Model):
         inputFileExtension = pathlib.Path(inputFilePath).suffix
         try:
             results: Results = self.model(inputFilePath, conf=confidence, iou=iou, imgsz=imageSize, show=False)
-            objects = {}
-
+            objects_count = defaultdict(int)
+            
             outputFile = default_storage.get_temporary_file(extension=inputFileExtension)
             for result in results:
                 result.save(filename=outputFile.name)
-                objects = result.names
+                for box in result.boxes:
+                    # Assuming class IDs are used for detection
+                    classId = int(box.cls)  # Convert to integer
+                    className = self.model.names[classId]
+                    # Increment the count for this class
+                    objects_count[className] += 1
 
             return {
                 'output': outputFile.name, 
                 'metadata': {
                     'type': 'image/jpeg',
-                    'objects': objects
+                    'objects': objects_count
                 }
             }
         except Exception as e:
