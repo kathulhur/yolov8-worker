@@ -1,6 +1,6 @@
-from inference_worker.core import abstraction
+from inference_worker.core.domain import abstraction
 from inference_worker.core.storage import default_storage
-from inference_worker.core.exceptions import InferenceError
+from inference_worker.core.domain.errors import InferenceError
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from ultralytics.solutions import ObjectCounter
@@ -10,18 +10,15 @@ import logging, mimetypes, pathlib, subprocess, cv2
 logger = logging.getLogger(__name__)
 class Model(abstraction.Model):
 
-    def __init__(self, model, counter):
-        self.model: YOLO = model
-        self.counter: ObjectCounter | None = counter
+    def __init__(self, model: YOLO, modelFilePath):
+        self.model = model
+        self.modelFilePath = modelFilePath
 
-    def infer(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, **kwargs):
-        print(confidence, iou, imageSize)
+    def infer(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, lineCoordinates='40,500,1200,500', **kwargs):
         logger.info('[START] Argument validation process begins')
-
         confidence = self.validate_confidence(confidence)
         iou = self.validate_iou(iou)
         imageSize = self.validate_imageSize(imageSize)
-
         logger.info('[END] Argument validation process ends')
 
         type, _ = mimetypes.guess_type(input_file_paths[0])
@@ -32,7 +29,7 @@ class Model(abstraction.Model):
             return self.handle_image_inference(input_file_paths, confidence=confidence, iou=iou, imageSize=imageSize)
 
         elif inputType == 'video':
-            return self.handle_video_inference(input_file_paths, confidence=confidence, iou=iou, imageSize=imageSize)
+            return self.handle_video_inference(input_file_paths, confidence=confidence, iou=iou, imageSize=imageSize, lineCoordinates=lineCoordinates)
 
     def handle_image_inference(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, **kwargs):
         inputFilePath = input_file_paths[0]
@@ -62,9 +59,14 @@ class Model(abstraction.Model):
             print(e)
             raise InferenceError('Cannot make prediction. Please check your inputs.')
 
-    def handle_video_inference(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, **kwargs):
+    def handle_video_inference(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, lineCoordinates, **kwargs):
         
+        x1, y1, x2, y2 = list(map(lambda x : int(float(x.strip())), lineCoordinates.split(',')))
 
+        counter = ObjectCounter(
+            model=self.modelFilePath,
+            region=[(x1, y1), (x2, y2)]
+        )
         inputFilePath = input_file_paths[0]
 
         try:
@@ -100,7 +102,7 @@ class Model(abstraction.Model):
                 count += 1
 
                 print('frame', count, 'out of ', total_frames)
-                modified_input = self.counter.count(frame)
+                modified_input = counter.count(frame)
             
                 # Write the modified frame to the video
                 videoOutput.write(modified_input)
@@ -116,7 +118,7 @@ class Model(abstraction.Model):
                 'metadata': {
                     'type': 'video/mp4',   
                     'counts': {
-                            **self.counter.classwise_counts
+                            **counter.classwise_counts
                         }
                     }
                 }
