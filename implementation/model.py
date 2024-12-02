@@ -42,10 +42,8 @@ class Model(abstraction.Model):
             for result in results:
                 result.save(filename=outputFile.name)
                 for box in result.boxes:
-                    # Assuming class IDs are used for detection
-                    classId = int(box.cls)  # Convert to integer
+                    classId = int(box.cls)
                     className = self.model.names[classId]
-                    # Increment the count for this class
                     objects_count[className] += 1
 
             return {
@@ -78,19 +76,15 @@ class Model(abstraction.Model):
 
             logger.info('Line counter set')
 
-            # Define the codec and create a VideoWriter object
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             temporaryOutputFile = default_storage.get_temporary_file(extension='.mp4')
             temporaryOutputFilePath = temporaryOutputFile.name
 
             frame_rate = capture.get(cv2.CAP_PROP_FPS)
 
-            # Get the width and height of the frames
             total_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
-            frame_size = (frame_width, frame_height)  # Set to the size of your frames (width, height)
+            frame_size = (frame_width, frame_height)
 
-
-            # Initialize VideoWriter
             videoOutput = cv2.VideoWriter(temporaryOutputFilePath, fourcc, frame_rate, frame_size)
             count = -1
 
@@ -104,10 +98,9 @@ class Model(abstraction.Model):
                 print('frame', count, 'out of ', total_frames)
                 modified_input = counter.count(frame)
             
-                # Write the modified frame to the video
                 videoOutput.write(modified_input)
 
-            # Release the VideoWriter
+
             videoOutput.release()
             logger.info('[END] Video inference process ends')
             
@@ -177,7 +170,6 @@ class Model(abstraction.Model):
 
 
     def convert_to_browser_friendly_format(self, input_path, output_path):
-        # Command to convert video using FFmpeg
         command = [
             'ffmpeg', '-i', input_path, '-vcodec', 'libx264', '-acodec', 'aac', output_path
         ]
