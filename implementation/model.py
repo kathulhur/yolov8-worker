@@ -14,21 +14,21 @@ class Model(abstraction.Model):
         self.model = model
         self.modelFilePath = modelFilePath
 
-    def infer(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, lineCoordinates='40,500,1200,500', **kwargs):
-        logger.info('[START] Argument validation process begins')
-        confidence = self.validate_confidence(confidence)
-        iou = self.validate_iou(iou)
-        imageSize = self.validate_imageSize(imageSize)
-        logger.info('[END] Argument validation process ends')
-
-        type, _ = mimetypes.guess_type(input_file_paths[0])
-        inputType = type.split('/')[0]
-
-
-        if inputType == 'image':
+    def infer(self, input_file_paths, *args, objectDetection=None, vehicleCounting=None, **kwargs):
+        
+        if objectDetection:
+            confidence = objectDetection.get('confidence', 0.3)
+            iou = objectDetection.get('iou', 0.7)
+            imageSize = objectDetection.get('imageSize', 640)
+            
             return self.handle_image_inference(input_file_paths, confidence=confidence, iou=iou, imageSize=imageSize)
 
-        elif inputType == 'video':
+        elif vehicleCounting:
+            confidence = vehicleCounting.get('confidence', 0.3)
+            iou = vehicleCounting.get('iou', 0.7)
+            imageSize = vehicleCounting.get('imageSize', 640)
+            lineCoordinates = vehicleCounting.get('lineCoordinates', '40,500,1200,500')
+
             return self.handle_video_inference(input_file_paths, confidence=confidence, iou=iou, imageSize=imageSize, lineCoordinates=lineCoordinates)
 
     def handle_image_inference(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, **kwargs):
