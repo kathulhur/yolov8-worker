@@ -1,14 +1,16 @@
-from inference_worker.core.domain import abstraction
-from inference_worker.core.storage import default_storage
-from inference_worker.core.domain.errors import InferenceError
+from inference_worker.core.domain.inference import Model
+from inference_worker.core.application.storages.media import MediaFileStorage
+from inference_worker.core.domain.inference import InferenceFailure, InferenceOutput
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from ultralytics.solutions import ObjectCounter
 from collections import defaultdict
-import logging, mimetypes, pathlib, subprocess, cv2
+import logging, pathlib, subprocess, cv2
+
+mediaFileStorage = MediaFileStorage()
 
 logger = logging.getLogger(__name__)
-class Model(abstraction.Model):
+class Model(Model):
 
     def __init__(self, model: YOLO, modelFilePath):
         self.model = model
@@ -38,7 +40,7 @@ class Model(abstraction.Model):
             results: Results = self.model(inputFilePath, conf=confidence, iou=iou, imgsz=imageSize, show=False)
             objects_count = defaultdict(int)
             
-            outputFile = default_storage.get_temporary_file(extension=inputFileExtension)
+            outputFile = mediaFileStorage.create_empty_file(file_extension=inputFileExtension)
             for result in results:
                 result.save(filename=outputFile.name)
                 for box in result.boxes:
@@ -46,16 +48,16 @@ class Model(abstraction.Model):
                     className = self.model.names[classId]
                     objects_count[className] += 1
 
-            return {
-                'output': outputFile.name, 
-                'metadata': {
+            return InferenceOutput(
+                outputFilePath=outputFile.name, 
+                metadata = {
                     'type': 'image/jpeg',
                     'objects': objects_count
                 }
-            }
+            )
         except Exception as e:
             print(e)
-            raise InferenceError('Cannot make prediction. Please check your inputs.')
+            raise InferenceFailure(detail='Cannot make prediction. Please check your inputs.')
 
     def handle_video_inference(self, input_file_paths, *args, confidence=0.3, iou=0.7, imageSize=640, lineCoordinates, **kwargs):
         
@@ -77,7 +79,7 @@ class Model(abstraction.Model):
             logger.info('Line counter set')
 
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            temporaryOutputFile = default_storage.get_temporary_file(extension='.mp4')
+            temporaryOutputFile = mediaFileStorage.create_empty_file(file_extension='.mp4')
             temporaryOutputFilePath = temporaryOutputFile.name
 
             frame_rate = capture.get(cv2.CAP_PROP_FPS)
@@ -104,20 +106,20 @@ class Model(abstraction.Model):
             videoOutput.release()
             logger.info('[END] Video inference process ends')
             
-            outputFileName = default_storage.get_temp_file_name_candidate(file_extension='.mp4')
+            outputFileName = mediaFileStorage.generate_file_name(file_extension='.mp4')
             self.convert_to_browser_friendly_format(temporaryOutputFile.name, outputFileName)
-            return {
-                'output': outputFileName,
-                'metadata': {
+            return InferenceOutput(
+                outputFilePath=outputFileName,
+                metadata = {
                     'type': 'video/mp4',   
                     'counts': {
                             **counter.classwise_counts
                         }
                     }
-                }
+            )
         except Exception as e:
             print(e)
-            raise InferenceError('An error failed in the middle of inference.')
+            raise InferenceFailure(detail='An error failed in the middle of inference.')
 
         finally:
             capture.release()
@@ -126,13 +128,13 @@ class Model(abstraction.Model):
         try:
             value = float(value)
         except ValueError as e:
-            raise InferenceError('Confidence value must be a floating point value and not any other data type.')
+            raise InferenceFailure(detail='Confidence value must be a floating point value and not any other data type.')
 
         if not isinstance(value, float):
-            raise InferenceError('Confidence value must be a floating point value and not any other data type.')
+            raise InferenceFailure(detail='Confidence value must be a floating point value and not any other data type.')
         
         if value < 0.1 or value > 1.0:
-                raise InferenceError('Confidence value must be between 0.1 and 1.0')
+                raise InferenceFailure(detail='Confidence value must be between 0.1 and 1.0')
         
         return value
 
@@ -140,13 +142,13 @@ class Model(abstraction.Model):
         try:
             value = float(value)
         except ValueError as e:
-            raise InferenceError('IoU value must be a floating point value and not any other data type.')
+            raise InferenceFailure(detail='IoU value must be a floating point value and not any other data type.')
         
         if not isinstance(value, float):
-                raise InferenceError('IoU value must be a floating point value and not any other data type.')
+                raise InferenceFailure(detail='IoU value must be a floating point value and not any other data type.')
         
         if value < 0.1 or value > 1.0:
-            raise InferenceError('IoU value must be between 0.1 and 1.0')
+            raise InferenceFailure(detail='IoU value must be between 0.1 and 1.0')
         
         return value
     
@@ -154,14 +156,14 @@ class Model(abstraction.Model):
         try:
             value = int(value)
         except ValueError as e:
-            raise InferenceError('ImageSize value must be an integer and not any other data type.')
+            raise InferenceFailure(detail='ImageSize value must be an integer and not any other data type.')
         
 
         if not isinstance(value, int):
-            raise InferenceError('ImageSize value must be an integer and not any other data type.')
+            raise InferenceFailure(detail='ImageSize value must be an integer and not any other data type.')
         
         if value < 320 or value > 1280:
-                raise InferenceError('Image size must be greater than or equal to 320 and less than or equal to 1280')
+                raise InferenceFailure(detail='Image size must be greater than or equal to 320 and less than or equal to 1280')
         
         return value
         

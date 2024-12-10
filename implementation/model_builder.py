@@ -1,13 +1,13 @@
-from inference_worker.core.domain import abstraction
-from inference_worker.core.domain.errors import InferenceError
+from inference_worker.core.domain.inference import ModelBuilder
+from inference_worker.core.domain.inference import InferenceFailure
 from ultralytics import YOLO
-from ultralytics.solutions import ObjectCounter
 from .model import Model
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-class ModelBuilder(abstraction.ModelBuilder):
+class ModelBuilder(ModelBuilder):
 
     def build(self, model_file_paths, *args, **kwargs):
         modelFilePath = model_file_paths[0]
@@ -20,6 +20,6 @@ class ModelBuilder(abstraction.ModelBuilder):
             return Model(model, modelFilePath)
         except Exception as e:
             logger.exception('[FAILED] Failed building model')
-            raise InferenceError('Model file cannot be loaded properly')
+            raise InferenceFailure(detail='Model file cannot be loaded properly')
 
 model_builder_class = ModelBuilder
