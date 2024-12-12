@@ -1,0 +1,58 @@
+{
+  "inferenceMetadata": {
+        "name": "Object Detection (Image)",
+        "modelArtifactSchema": 
+          {
+            "description": "Select .pth weights file",
+            "accept": [".pth"],
+            "minimum": 1,
+            "maximum": 1
+          }
+        ,
+        "inferenceInputSchema": [
+          {
+            "type": "videoWithInteractiveLine",
+            "description": "Select a video",
+            "accept": ["video/*", ".jpeg"]
+          }
+        ]
+        ,
+        "argumentSets": {
+          "standard": {
+            "default": true,
+            "name": "Standard arguments",
+            "arguments": {
+              "confidence": {
+                    "name": "Confidence",
+                    "description": "Confidence threshold",
+                    "typeSchema": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 1.0,
+                      "multipleOf": 0.1,
+                      "default": 0.3
+                    }
+                },
+                "iou": {
+                  "name": "IOU",
+                  "description": "IOU threshold",
+                  "typeSchema": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1.0,
+                    "multipleOf": 0.1,
+                    "default": 0.7
+                  }
+                },
+                "lineCoordinates": {
+                    "name": "Line Coordinates",
+                    "description": "Format: x1, y1, x2, y2",
+                    "typeSchema": {
+                      "type": "string"
+                    }
+                }
+            }
+          }
+        }
+    }
+}
