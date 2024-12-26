@@ -1,6 +1,6 @@
-from inference_worker.core.domain.inference import Model
-from inference_worker.core.application.storages.media import MediaFileStorage
-from inference_worker.core.domain.inference import InferenceFailure, InferenceOutput
+from inference_worker.core.workflow.inference import Model
+from inference_worker.core.storages.media import MediaFileStorage
+from inference_worker.core.workflow.inference import InferenceFailure, InferenceOutput
 from ultralytics import YOLO
 from ultralytics.engine.results import Results
 from collections import defaultdict

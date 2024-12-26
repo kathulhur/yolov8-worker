@@ -1,5 +1,5 @@
-from inference_worker.core.domain.inference import ModelBuilder
-from inference_worker.core.domain.inference import InferenceFailure
+from inference_worker.core.workflow.inference import ModelBuilder
+from inference_worker.core.workflow.inference import InferenceFailure
 from ultralytics import YOLO
 from .model import Model
 import logging
