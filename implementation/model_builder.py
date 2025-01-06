@@ -1,13 +1,12 @@
-from inference_worker.core.workflow.inference import ModelBuilder
-from inference_worker.core.workflow.inference import InferenceFailure
+from inference_worker.workflow import ModelBuilder, InferenceFailure
 from ultralytics import YOLO
-from .model import Model
+from .model import YoloV8Model
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class ModelBuilder(ModelBuilder):
+class YOLOv8ModelBuilder(ModelBuilder):
 
     def build(self, model_file_paths, *args, **kwargs):
         modelFilePath = model_file_paths[0]
@@ -17,9 +16,9 @@ class ModelBuilder(ModelBuilder):
             logger.info('Model Initialized')
             
             logger.info('[END] Model building finished')
-            return Model(model, modelFilePath)
+            return YoloV8Model(model, modelFilePath)
         except Exception as e:
             logger.exception('[FAILED] Failed building model')
-            raise InferenceFailure(detail='Model file cannot be loaded properly')
+            raise InferenceFailure('Model file cannot be loaded properly')
 
-model_builder_class = ModelBuilder
+model_builder_class = YOLOv8ModelBuilder
